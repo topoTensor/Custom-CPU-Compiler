@@ -16,7 +16,7 @@ Support for I/O, arrays, and strings is currently **not planned**, since impleme
 
 ## Example Syntax
 
-```python
+```go
 # Comments start with a hashtag.
 a = 10
 b = 12
