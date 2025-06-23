@@ -3,6 +3,8 @@
 A lightweight experimental compiler written in Python for my custom-built Verilog CPU.  
 This project is a **work in progress** and subject to major redesigns as the CPU and instruction set architecture (ISA) evolve.
 
+The repository also contains a custom ISA assembler and disassembler.
+
 ## Project Goals
 
 The first version of the language aims to support:
