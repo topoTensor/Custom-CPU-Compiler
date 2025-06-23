@@ -2,4 +2,5 @@ ADDI r1, r0, 10
 ADDI r2, r0, 12
 ADD r3, r1, r2
 SW r3, r0, 0
+LLI r1, 123
 J 0

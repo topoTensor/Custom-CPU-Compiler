@@ -1,0 +1,78 @@
+note: Though the CPU architecture dictates the limitations and possibilities of the instruction set, there are ideas which will be unchanged at least as long as I don't add more features, such as SIMD or Atomic. Such ideas are illustrated here.
+
+A single instruction consists of 4 bytes: opcode, destination, source1, source2. Though this representation is fixed, depending on the opcodes the assembler might dissmiss the arguments (one or two sources).
+
+Each source is a register (r0-r31). r0 is the constant zero register.
+
+The assembly supports 5 types of opcodes. They are:
+
+DSS - opcode destination, source1, source2.
+    * ARITHMETICS
+
+    add     - adds two source registers, saves in destination register
+    mul     - multiplies two registers, saves first 32 bits of the result in the destination register
+    ( note that multiplying two 32-bit values gives 64-bit value)
+    mulh    - multiplies two registers, saves last 32 bits of the result in the destination register 
+    div     - integer division of two source registers
+    rem     - remainder of two registers after division
+    
+    * LOGIC
+
+    and, or, xor    - logical AND, OR, XOR operators
+    not             - logical not operator, ignores the second source register
+
+    * SHIFTING
+
+    sll     - shifts left the first source register by second register's value, saves in destination
+    srl     - shifts right
+    sra     - arithmetic shift right
+    
+   
+    * SETTERS
+
+    slt     - sets the destination register with the value (source1 < source2)
+    slts    - signed variation of slt instruction opcode
+
+note: even though the first argument is still named destination, branching instructions use address stored as the immediate value.
+DSI - opcode destination, source, immediate value.
+
+    Immediate counterparts of DSS type opcodes - addi, andi, ori, xori, slli, srli, srai, slti, sltsi
+
+    LOADING
+    
+    lb - load a single byte from ram location of source register value + immediate offset into the destination register.
+    lh - loads half-word (16 bits) from ram by source+offset
+    lw - loads word (32 bits) from ram by source+offset
+
+    SAVING 
+
+    sb - saves a single byte of source register into the address stored in destination register + offset
+    sh, sw - half word and word variants of sb
+
+    BRANCHING
+
+    beq     - branch if equal. Jumps to the immediate address if the destination register equals the source register.
+    bneq    - branch if not equal
+    blt     - branch if less than
+    ble     - branch if less than or equal
+    blts    - branch if less than           (signed variant)
+    bltes   - branch if less than or equal  (signed variant)
+    
+    jalr    - jump and link register. Jumps to the address at source + immediate offset. Saves the return address in destination register.
+
+DS - opcode destination, source
+
+    seqz - set equal to zero. Sets the destination register the value of (source == 0)
+
+DI - opcode destination, immediate
+
+    jal - jump and link. Jumps to the immediate value and saves the return address in the destination register.
+
+    lui - loads the immediate value (which is 16 bits long) into the upper part of the destination register.
+    lli - loads the immediate value into the lower part of the destination register.
+
+I - opcode immediate
+
+    j - jumps to the immediate value (24-bit)
+
+note: because 'addi r1, r0, imm' instruction supports only 8 bit immediate value, to load a single 32 bit value into the register, you need to use both lui and lli. e.g. To store 0x1234 into register r1, write 'lui r1, 0x12' and 'lli r1, 0x34'
