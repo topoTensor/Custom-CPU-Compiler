@@ -2,6 +2,8 @@ from enum import IntEnum
 
 # first 3 bits are always free. In a sense, you can have at least 8 different opcodes for each type.
 
+# TODO: explain the design and implementation.
+
 IMMEDIATE_BIT                       = 0b1_00_0_0_000
 
 ARITHMETIC_BIT                      = 0b0_00_0_0_000
@@ -70,7 +72,7 @@ class Opcode(IntEnum):
     BLT   = 0B00000_010 | BRANCHING_BIT | IMMEDIATE_BIT
     BLE   = 0B00000_011 | BRANCHING_BIT | IMMEDIATE_BIT
     BLTS  = 0B00000_100 | BRANCHING_BIT | IMMEDIATE_BIT
-    BTES  = 0B00000_101 | BRANCHING_BIT | IMMEDIATE_BIT
+    BLTES  = 0B00000_101 | BRANCHING_BIT | IMMEDIATE_BIT
 
     # branching, 3 used, 13 available
     JALR  = 0B00000_000 | JUMPING_BIT | IMMEDIATE_BIT

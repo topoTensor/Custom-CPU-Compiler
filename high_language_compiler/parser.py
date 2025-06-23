@@ -6,7 +6,7 @@
 # # note for 22/6. For now I will work on simple mathematical expressions. Keywords will be worked later
 
 from tokens import Token, Tokens, OPERATORS, KEYWORDS, PUNCTUATIONS, NUMBERS
-from iterator import Iterator
+from high_language_compiler.iterator import Iterator
 from expression import Expression
 
 TESTING = True

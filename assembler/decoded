@@ -1,6 +1,37 @@
-ADDI r1, r0, 10
-ADDI r2, r0, 12
-ADD r3, r1, r2
-SW r3, r0, 0
-LLI r1, 123
-J 0
+ADD r1, r2, r3
+MUL r1, r2, r3
+MULH r1, r2, r3
+DIV r1, r2, r3
+REM r1, r2, r3
+AND r1, r2, r3
+OR r1, r2, r3
+XOR r1, r2, r3
+NOT r1, r2, r0
+SLL r1, r2, r3
+SRL r1, r2, r3
+SRA r1, r2, r3
+SLT r1, r2, r3
+SLTS r1, r2, r3
+ADDI r1, r2, 5
+ORI r1, r2, 1
+XORI r1, r2, 42
+SLLI r1, r2, 4
+SRLI r1, r2, 4
+SRAI r1, r2, 4
+SLTI r1, r2, 10
+SLTSI r1, r2, 1
+LB r1, r2, 0
+LH r1, r2, 2
+LW r1, r2, 4
+SB r1, r2, 0
+SH r1, r2, 2
+SW r1, r2, 4
+BEQ r1, r2, 100
+BNEQ r1, r2, 104
+BLT r1, r2, 108
+BLE r1, r2, 112
+BLTS r1, r2, 116
+BLTES r1, r2, 120
+JALR r1, r2, 8
+SEQZ r1, r2
+JAL r1, 0

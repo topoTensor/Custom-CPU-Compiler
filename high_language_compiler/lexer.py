@@ -16,6 +16,8 @@
 #   The todo part is not yet included, because the language will change substantially. Most probably, in the future the lexer will
 #   also support floating points, strings and arrays.
 
+# TODO: REWRITE USING ITERATORS
+
 import textwrap
 from tokens import Token, Tokens, OPERATORS, KEYWORDS, PUNCTUATIONS, NUMBERS
 

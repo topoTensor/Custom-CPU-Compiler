@@ -9,12 +9,16 @@
 
 #         * For high-level details look at the 'explain_assembly' file
 
+#           note: assembler supports comments. Comments start with ';' symbol.
+
+# TODO: add labels support
+# TODO: support for binary, hexidecimal and negative immediate arguments.
+# ! TODO: IMPLEMENT USING THE AssemblyLexer.
 
 import opcodes as op
 import struct
 
-#       2) make error handling and messaging
-#       3) add labels support
+from assembly_lexer import AssemblyLexer
 
 class ISA_compiler:
     def __init__(self):
@@ -27,13 +31,12 @@ class ISA_compiler:
         """
         lines=[]
 
-        # read the input file, split it by new lines, remove all '' from the list.
+        text = ""
+        # read the input file
         with open(input_file_name, "r") as file:
             text = file.read()
-            lines = text.splitlines()
-            # while '' in lines: DON'T REMOVE THEM, USED AT LINE INDEXING FOR ERRORS
-            #     lines.remove('')
         
+        self.lexer = AssemblyLexer(text)
         line_index = 0
         # write binary into the file
         with open(output_file_name, "wb") as file:
@@ -42,12 +45,26 @@ class ISA_compiler:
             for l in lines:
                 line_index+=1
                 # skip empty lines
-                if l == '':
-                    continue
+                # if l == '': DEPRICATED FOR NOW
+                    # continue
 
                 # splits the instruction (e.g. add a,b,c into ['add' 'a,' 'b,' 'c'], notice the commas)
                 split = l.split() # split has dynamic size and depends on the instruction type (namely DSS - 4, DSI - 4, DS - 3, DI - 3, I - 2)
-                opcode_byte = self.opcodes_dict[split[0].upper()] # opcode byte representation
+
+
+                # skip comments
+                for i,s in enumerate(split):
+                    if s == ';':
+                        split=split[:i]
+                if len(split) == 0:
+                    continue
+
+                print(split)
+    
+                try:
+                    opcode_byte = self.opcodes_dict[split[0].upper()] # opcode byte representation
+                except:
+                    raise SyntaxError(f"no such opcode: {repr(split[0])}")
                 opcode_type = self._find_opcode_type(opcode_byte) # returns the instruction type given the bytecode
 
                 dest, src1, src2, imm, data = 0,0,0,0,bytes() # pre-define bytecodes
@@ -202,5 +219,5 @@ class ISA_compiler:
 
 isa_compiler = ISA_compiler()
 
-isa_compiler.encode('input', 'output')
+isa_compiler.encode('test_input', 'output')
 isa_compiler.decode('output', 'decoded')
