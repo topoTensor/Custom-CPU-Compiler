@@ -8,28 +8,18 @@
 #           The lexer supports comments, all opcodes, all registers, numerical (signed and unsigned) immediate values, hex immediate values and also labels.
 
 import opcodes as op
+from tokens import Token
 
-# A quick wrapper around the tuple
-class AssemblyToken:
-    def __init__(self, token_type, value, line, word):
-        self.token_type = token_type
-        self.value = value
-        self.line = line
-        self.word = word
-    
-    def __repr__(self) -> str:
-        return f"( {self.token_type}, {self.value}, {self.line} : {self.word} )"
+# TODO: write a better test. Compare the tokens with desired output.
 
 # The lexer
 class AssemblyLexer:
-    def __init__(self, input_text: str):
+    def __init__(self, ):
 
         self.opcodes = [op.name for op in op.Opcode] # all possible opcodes
         self.registers = ['r'+str(i) for i in range(32)] # all possible registers (r0-r31)
 
         self.tokens = []
-
-        self.text = input_text
 
     def pretty(self, only_value=False):
         """
@@ -52,83 +42,115 @@ class AssemblyLexer:
                 print(self.tokens[i], end=end)
             i+=1
 
-    def tokenize(self):
+    def tokenize(self, input_text:str):
+        # The idea is to split the text into preprocessed tokens. We suppose that the program is written syntatically correct,
+        # and it allows us to split 'addi r0, r1, r2' into 'addi', 'r0', 'r1', 'r2', just using whitespace.
+        # In the case that whitespace is not mandatory as with commas and columns, we add it artificially.
+        # This approach is more elegant than iteration and suits better for simple syntax languages like our assembler.
+        self.text = input_text
         self.tokens = []
 
-        # separate the newliens for easier lexing
-        self.text = repr(self.text).replace('\\n', " __TOKENIZATION__NEW__LINE ")[1:-1]
+        # Preprocess text for simple lexing, avoiding cases like 'label:' vs 'label :'
+        text = self.text.replace(';', ' ; ')
+        text = text.replace(':', ' : ')
+        text = text.replace(',', ' ')
+        text = text.replace('\n', ' __TOKENIZATION__NEW__LINE__ ')
 
-        # split into word and symbols
-        split = self.text.split()
-
+        words = text.split()
         i = 0
-        line = 0
-        word = 0
-        while i < len(split):
-            s = split[i]
+        line = 1
+        word = 1
 
-            # keep track of the line and word
-            if s == "__TOKENIZATION__NEW__LINE":
+        while i < len(words):
+            s = words[i]
+
+            # thrack lines
+            if s == '__TOKENIZATION__NEW__LINE__':
                 line += 1
                 word = 0
 
-            # if a label declaration. e.g. 'label:'
-            elif s[-1] == ':':
-                self.tokens.append(AssemblyToken("LABEL", s[:-1], line, word))
+            # labels
+            elif i + 1 < len(words) and words[i + 1] == ':':
+                self.tokens.append(Token("LABEL", s, line, word))
+                i += 1  # Skip the ':'
 
-            # if opcode
+            # opcodes
             elif s.upper() in self.opcodes:
-                self.tokens.append(AssemblyToken("OPCODE", s, line, word))
+                self.tokens.append(Token("OPCODE", s.upper(), line, word))
 
-            # if register with comma. e.g. 'r0,'
-            elif s[:-1].lower() in self.registers:
-                self.tokens.append(AssemblyToken("REGISTER", s[:-1], line, word))
-            
-            # if register without comma. e.g. 'r0'
+            #  registers
             elif s.lower() in self.registers:
-                self.tokens.append(AssemblyToken("REGISTER", s, line, word))
-            
-            # if a number
-            elif str.isnumeric(s):
-                self.tokens.append(AssemblyToken("NUMERIC", s, line, word))
+                self.tokens.append(Token("REGISTER", s.lower(), line, word))
 
-            # if a number with unary minus. e.g. '-10'
-            elif s[0] == '-' and str.isnumeric(s[1:]):
-                self.tokens.append(AssemblyToken("SIGNED", s, line, word))
-            
-            # if a hexidecimal
-            elif s[:2] == '0x':
-                self.tokens.append(AssemblyToken("HEX", s, line, word))
-            
-            # if a comment. Traverse the whole line till the newline word
-            elif ';' in s:
-                while s != '__TOKENIZATION__NEW__LINE':
-                    if i+1 >= len(split):
-                        break
+            # unsigned numbers
+            elif s.isdigit():
+                self.tokens.append(Token("NUMERIC", s, line, word))
+
+            # signed numbers
+            elif s.startswith('-') and s[1:].isdigit():
+                self.tokens.append(Token("SIGNED", s, line, word))
+
+            # hex
+            elif s.startswith('0x'):
+                self.tokens.append(Token("HEX", s.upper(), line, word))
+
+            # comments
+            elif s == ';':
+                # Skip all words until newline
+                while i < len(words) and words[i] != '__TOKENIZATION__NEW__LINE__':
                     i += 1
-                    s = split[i]
                 line += 1
                 word = 0
 
+            # identifiers. Either syntatically incorrect words, or label jumps e.g. 'j label'. The first case must be handled by parser.
             else:
-                # ignore commas. It can happen if the line was written 'operator r0 , r1' and the comma got separated.
-                if s != ',':
-                    # otherwise, it's either a label as in 'j label', or a junk word. The second case must be handled by parser.
-                    self.tokens.append(AssemblyToken("IDENTIFIER", s, line, word))
+                self.tokens.append(Token("IDENTIFIER", s, line, word))
 
+            # iterate
             i += 1
             word += 1
 
-        self.tokens.append(AssemblyToken("EOF",0,line, word))
+        # add eof. End of lexing.
+        self.tokens.append(Token("EOF", 0, line, word))
         return self.tokens
-    
+
 
 # just for future testing. A redundant part. Should be removed after everything's done.
 TESTING = False
 if TESTING:
-    with open("test_input", "r") as file:
-        test_text = file.read()
+    programs = [
+        """
+        start : 
+            lli   r1 ,  5
+            add r2,r0, r1
+            addi r1, r0,0x123
+        """,
+    ]
+    answers = [
+        [   Token( 'LABEL', 'start', 2 , 1 ), 
+            Token( 'OPCODE', 'LLI', 3 , 1 ), Token( 'REGISTER', 'r1', 3 , 2 ), Token( 'NUMERIC', '5', 3 , 3 ), 
+            Token( 'OPCODE', 'ADD', 4 , 1 ), Token( 'REGISTER', 'r2', 4 , 2 ), Token( 'REGISTER', 'r0', 4 , 3 ), Token( 'REGISTER', 'r1', 4 , 4 ),
+            Token( 'OPCODE', 'ADDI', 5 , 1 ), Token( 'REGISTER', 'r1', 5 , 2 ), Token( 'REGISTER', 'r0', 5 , 3 ), Token( 'HEX', '0X123', 5 , 4 ),
+            Token( 'EOF', 0, 6 , 1 )],
+    ]
 
-        lexer = AssemblyLexer(test_text)
-        lexer.tokenize()
-        lexer.pretty()
+    lexer = AssemblyLexer()
+
+    for i in range(len(programs)):
+        tokens = lexer.tokenize(programs[i])
+        failed = False
+        for j,t in enumerate(tokens):
+            if False in t.compare(answers[i][j]):
+                print(f"AssemblyLexer: program {i}. token {j} doesn't match: ", t, answers[i][j], t.compare(answers[i][j]))
+                failed = True
+        
+        if failed:
+            break
+        print(f"\nASSEMBLYLEXER: TEST {i} PASSED.\n")
+
+    # with open("test_input.asm", "r") as file:
+    #     test_text = file.read()
+
+    #     lexer = AssemblyLexer(test_text)
+    #     lexer.tokenize()
+    #     lexer.pretty()

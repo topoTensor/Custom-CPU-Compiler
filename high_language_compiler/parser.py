@@ -9,6 +9,8 @@ from tokens import Token, Tokens, OPERATORS, KEYWORDS, PUNCTUATIONS, NUMBERS
 from high_language_compiler.iterator import Iterator
 from expression import Expression
 
+# TODO: note the TDD design. Write the tests.
+
 TESTING = True
 
 class Parser:

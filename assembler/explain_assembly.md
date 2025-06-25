@@ -1,5 +1,8 @@
 > **Note:** Though the CPU architecture dictates the limitations and possibilities of the instruction set, some ideas remain stable unless new features (such as SIMD or Atomic operations) are introduced. These core ideas are illustrated here. For low-level details, visit opcodes.py file.
 
+# Note that labels end with ':' symbol. Nothing should follow the column after the label name. The next instruction must start with a new line.
+# Comments start with ; and go through the end of the line.
+
 ```asm
 A single instruction consists of 4 bytes: opcode, destination, source1, source2. Though this representation is fixed, depending on the opcodes the assembler might dissmiss the arguments (one or two sources).
 ```
