@@ -6,12 +6,10 @@
 # # note for 22/6. For now I will work on simple mathematical expressions. Keywords will be worked later
 
 from tokens import Token, Tokens, OPERATORS, KEYWORDS, PUNCTUATIONS, NUMBERS
-from high_language_compiler.iterator import Iterator
+from iterator import Iterator
 from expression import Expression
 
 # TODO: note the TDD design. Write the tests.
-
-TESTING = True
 
 class Parser:
     def __init__(self, tokens):
@@ -62,16 +60,4 @@ class Parser:
         return lhs
 
 
-if TESTING:
-    import lexer
-    import textwrap
 
-    test_text = textwrap.dedent("""
-        (2 + 3) + (4 / 5 + 2 * 2 *(2 + 1))
-""")
-
-    lexer=lexer.Lexer(test_text, False)
-    tokens = lexer.tokenize()
-    parser = Parser(tokens)
-    ast = parser.parse()
-    ast.pretty()

@@ -11,8 +11,7 @@
 
 #           note: assembler supports comments. Comments start with ';' symbol.
 
-# TODO: write a better test. Compare the result with desired output.
-
+# ! TODO WRITE TESTS 
 
 import opcodes as op
 import struct

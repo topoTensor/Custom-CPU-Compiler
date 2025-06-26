@@ -35,7 +35,7 @@ class Iterator:
             self.word = self.elements[self.cursor]
             return self.word
         else:
-            raise SyntaxError(f"{self.name} tried to advance out-of-bounds element at position {self.cursor}")
+            raise IndexError(f"{self.name} tried to advance out-of-bounds element at position {self.cursor}")
 
     # returns the CURRENT element pointed by the cursor and then advances the cursor by a single step
     def pre_advance(self):

@@ -12,8 +12,6 @@ import struct
 
 from assembly_lexer import AssemblyLexer
 
-# TODO : write tests. Check lexer also.
-
 class AssemblySimulator:
     def __init__(self):
         self.opcodes_dict = {op.name: op.value for op in op.Opcode}

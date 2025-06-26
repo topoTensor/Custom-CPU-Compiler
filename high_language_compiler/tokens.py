@@ -8,10 +8,10 @@
 
 from enum import Enum
 
-OPERATORS = ['+', '-', '*', '/', '=', '<', '>']
+OPERATORS = ['+', '-', '*', '/', '=', '<', '>', '!', '&', '|', '^', ';']
 NUMBERS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 KEYWORDS = ['if', 'while', 'function', 'return']
-PUNCTUATIONS = [',', '(', ')', '{', '}', '[', ']']
+PUNCTUATIONS = [',', '(', ')', '{', '}']
 
 class Tokens(Enum):
     IDENTIFIER =0
@@ -29,4 +29,8 @@ class Token:
         self.column = column
 
     def __repr__(self) -> str:
-        return f"( {self.token_type}, {repr(self.value)} )"
+        return f"( {self.token_type}, {repr(self.value)}, {self.line}, {self.column} )"
+
+    def compare(self, t2):
+        """ Returns a 4 tuple of bool values, whether token_type, value, line and column match. """
+        return (self.token_type == t2.token_type, self.value == t2.value, self.line == t2.line, self.column == t2.column)

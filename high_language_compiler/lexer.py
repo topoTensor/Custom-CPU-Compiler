@@ -1,180 +1,214 @@
-import opcodes as op
+#########################################################
+#   Lexer file. Created on 22/6/25
+#   Intent: First step in the compiler. Initiate Lexer class with raw input string, which is supposed to be the code text.
+#           It will return a list of tokens, which should be given to the parser in the next compiling stage. Each token
+#           can be either number, operator, punctuation, keyword or identifier. 
+#
+#           For now, only integers are supported. Keywords include 'if', 'while', 'function', 'retrun'
+#
+#           Handles multi-character operators: ==, !=, <=, >=, as well as single character operators: +, -, *, /, =
+#
+#           Comments are assumed to start with hashtag '#', so the string after # will be ignored.
+#
+#           For more, look at the tokens.py file, which is responsible for the Token class and possible token types.
+#
+
+# ^ The lexer is ready.
+
+import textwrap
+from tokens import Token, Tokens, OPERATORS, KEYWORDS, PUNCTUATIONS, NUMBERS
+
 from iterator import Iterator
-from tokens import Token
 
-class AssemblyLexer:
-    def __init__(self, input_text: str):
-        self.opcodes = [op.name for op in op.Opcode]  # All possible opcodes
-        self.registers = [f'r{i}' for i in range(32)]  # All possible registers (r0-r31)
+
+class Lexer:
+    """
+    public functions:   
+    tokenize - tokenizes the text given at class initiation.  
+    _add_token - adds a token to the lexer's tokens list
+    """
+    def __init__(self, text : str, testing=False, add_EOF=True):
+        self.text = text
+
+        self.iterator = Iterator(text, name='high-level-lexer-iterator')
+
+        # self.cursor = 0
         self.tokens = []
-        self.iterator = Iterator(input_text, 'assembly-lexer-iterator')
-        self.text = input_text
+        if len(text) == 0:
+            print("WARNING: Input file is empty")
+            self.iterator.word = ''
+        else:
+            self.iterator.word = self.text[0]
 
-    def pretty(self, only_value=False):
-        """Pretty print tokens with optional simplified output"""
-        output = []
-        for i, token in enumerate(self.tokens):
-            if only_value:
-                output.append(str(token.value))
-            else:
-                output.append(str(token))
-            # Add newline after opcodes, labels, or before EOF
-            if (i + 1 < len(self.tokens) and 
-                self.tokens[i+1].token_type in ['OPCODE', 'LABEL', 'EOF']):
-                output.append('\n')
-            else:
-                output.append(' ')
-        print(''.join(output).strip())
+        self.line, self.column = 0,0  # for now, used only in error reporting
 
-    def tokenize(self, log_output=False):
-        """Main tokenization method with improved handling"""
-        self.tokens = []
-        line = 1
-        column = 1
-        current_token = ''
-        
-        while self.iterator.can_peek():
-            char = self.iterator.word
-            
-            # Handle line counting
-            if char == '\n':
-                line += 1
-                column = 1
-                self.iterator.advance()
-                continue
-            
-            # Skip whitespace
-            if char in [' ', '\t']:
-                self.iterator.advance()
-                column += 1
-                continue
-            
-            # Handle comments
-            if char == ';':
-                while self.iterator.can_peek() and self.iterator.peek() != '\n':
+        self.testing = testing # whether to print the tokens and strings at the end of tokenize function
+        self.add_EOF = add_EOF # whether to include the EOF token in the end of tokens list. 
+
+    def tokenize(self):
+        # in case of empty input string
+        if len(self.text) == 0:
+            if self.add_EOF:
+                return [Token(Tokens.EOF, '', 0,0)]
+            else:
+                return []
+
+        # look for all possible token types. advance one step each iteration till the end of the text
+        while self.iterator.cursor < len(self.text):
+
+            # update lines and columns counters
+            if self.iterator.word == '\n':
+                self.line += 1
+                self.column = 0
+            else:
+                self.column += 1
+
+            # white space
+            if self._is_white_space():
+                if self.iterator.can_peek():
                     self.iterator.advance()
-                self.iterator.advance()  # Skip the newline
-                line += 1
-                column = 1
-                continue
-            
-            # Handle labels
-            if char == ':':
-                if current_token:
-                    self.tokens.append(Token('LABEL', current_token + ':', line, column))
-                    current_token = ''
-                    self.iterator.advance()
-                    column += 1
-                continue
-            
-            # Handle registers (r0-r31)
-            if char == 'r' and self.iterator.can_peek():
-                reg_token = 'r'
-                self.iterator.advance()
-                column += 1
-                
-                # Collect register number
-                while self.iterator.can_peek() and self.iterator.word.isdigit():
-                    reg_token += self.iterator.word
-                    self.iterator.advance()
-                    column += 1
-                
-                if reg_token in self.registers:
-                    self.tokens.append(Token('REGISTER', reg_token, line, column))
                 else:
-                    raise ValueError(f"Invalid register {reg_token} at line {line}, column {column}")
+                    break
                 continue
-            
-            # Handle hex numbers (0x...)
-            if char == '0' and self.iterator.can_peek(1) and self.iterator.peek(1).lower() == 'x':
-                hex_token = '0x'
-                self.iterator.advance()  # Skip '0'
-                self.iterator.advance()  # Skip 'x'
-                column += 2
-                
-                # Collect hex digits
-                while (self.iterator.can_peek() and 
-                       self.iterator.word.lower() in '0123456789abcdef'):
-                    hex_token += self.iterator.word
+
+            elif self.iterator.word == '#':
+                while self.iterator.peek() != '\n':
                     self.iterator.advance()
-                    column += 1
-                
-                self.tokens.append(Token('HEX', hex_token, line, column))
-                continue
-            
-            # Handle binary numbers (0b...)
-            if char == '0' and self.iterator.can_peek(1) and self.iterator.peek(1).lower() == 'b':
-                bin_token = '0b'
-                self.iterator.advance()  # Skip '0'
-                self.iterator.advance()  # Skip 'b'
-                column += 2
-                
-                # Collect binary digits
-                while self.iterator.can_peek() and self.iterator.word in '01':
-                    bin_token += self.iterator.word
-                    self.iterator.advance()
-                    column += 1
-                
-                self.tokens.append(Token('BIN', bin_token, line, column))
-                continue
-            
-            # Handle decimal numbers (including negative)
-            if char.isdigit() or (char == '-' and self.iterator.can_peek(1) and 
-                                self.iterator.peek(1).isdigit()):
-                num_token = char
+
+            # operators
+            elif self.iterator.word in OPERATORS:
+                self._add_operator()
+
+            # numbers
+            elif self.iterator.word in NUMBERS:
+                self._add_number()
+
+            # punctuation
+            elif self.iterator.word in PUNCTUATIONS:
+                self._add_token(Tokens.PUNCTUATION, self.iterator.word)
+
+            # keywords and identifiers
+            elif self.iterator.word.isalpha() or self.iterator.word == '_':
+                self._add_keyword_identifier()
+
+            else:
+                raise SyntaxError(f"Invalid character '{self.iterator.word}' at line {self.line}, column {self.column}")
+
+
+            # advance one step
+            if self.iterator.can_peek():
                 self.iterator.advance()
-                column += 1
-                
-                # Collect digits
-                while self.iterator.can_peek() and self.iterator.word.isdigit():
-                    num_token += self.iterator.word
-                    self.iterator.advance()
-                    column += 1
-                
-                # Check for valid number
-                if char == '-' and len(num_token) == 1:
-                    raise ValueError(f"Invalid number {num_token} at line {line}, column {column}")
-                
-                token_type = 'SIGNED' if char == '-' else 'NUMERIC'
-                self.tokens.append(Token(token_type, num_token, line, column))
-                continue
-            
-            # Handle opcodes
-            if char.isalpha():
-                current_token += char
-                self.iterator.advance()
-                column += 1
-                
-                # Check for complete opcode
-                while (self.iterator.can_peek() and 
-                       self.iterator.word.isalpha() and
-                       (current_token + self.iterator.word).upper() in self.opcodes):
-                    current_token += self.iterator.word
-                    self.iterator.advance()
-                    column += 1
-                
-                if current_token.upper() in self.opcodes:
-                    self.tokens.append(Token('OPCODE', current_token.upper(), line, column))
-                    current_token = ''
-                continue
-            
-            # Handle commas (just skip them)
-            if char == ',':
-                self.iterator.advance()
-                column += 1
-                continue
-            
-            # Handle other characters (like symbols in labels)
-            current_token += char
-            self.iterator.advance()
-            column += 1
-        
-        # Add EOF token
-        self.tokens.append(Token('EOF', '', line, column))
-        
-        if log_output:
-            print("LEXER INPUT FILE:\n", self.text)
-            print("TOKENS:")
-            self.pretty()
-        
+            else:
+                break
+
+        # add EOF if needed
+        if self.add_EOF:
+            self._add_token(Tokens.EOF, 'EOF')
+
+        # print text and tokens for testing
+        if self.testing:
+            print("LEXER INPUT FILE:\n",self.text)
+            print("TOKENS:\n",self.tokens)
+
+        # end of lexing
         return self.tokens
+    
+    #
+    # UTILITY FUNCTIONS ________________________________________________________________________________________________
+    #
+
+    # check for white space
+    def _is_white_space(self):
+        return self.iterator.word == ' ' or self.iterator.word == '\n' or self.iterator.word == '\t'
+
+    def _is_peek_white_space(self):
+        return self.iterator.peek() == ' ' or self.iterator.peek() == '\n' or self.iterator.peek() == '\t'
+
+    # adds a token to the self.tokens list
+    def _add_token(self, token_type, value):
+        self.tokens.append(Token(token_type, value, self.line, self.column))
+        self.column += len(str(value)) - 1  # so that words don't count as a single character
+
+
+    # checks all possible operators and adds accordingly. Checks for ==, !=, <=, >= cases first using iterator.peek
+    def _add_operator(self):
+        assert self.iterator.word in OPERATORS
+
+        # define, is equal to
+        if self.iterator.word == '=':  
+            if self.iterator.can_peek() and self.iterator.peek() == '=': # check for == case
+                self._add_token(Tokens.OPERATOR, '==')
+                self.iterator.advance()
+            else:
+                self._add_token(Tokens.OPERATOR, '=')
+
+
+        # not equal to
+        elif self.iterator.word == '!':
+            if self.iterator.can_peek() and self.iterator.peek() == '=':
+                self._add_token(Tokens.OPERATOR, '!=')
+                self.iterator.advance()
+            else:
+                self._add_token(Tokens.OPERATOR, '!')
+            
+
+        # less or equal than, less than
+        elif self.iterator.word == '<':
+            if self.iterator.can_peek() and self.iterator.peek() == '=':  # check for <= case
+                self._add_token(Tokens.OPERATOR, '<=')
+                self.iterator.advance()
+            elif self.iterator.can_peek() and self.iterator.peek() == '<':  # check for << case
+                self._add_token(Tokens.OPERATOR, '<<')
+                self.iterator.advance()
+            else:
+                self._add_token(Tokens.OPERATOR, '<')
+    
+
+        # greater or equal than, greater than
+        elif self.iterator.word == '>':
+            if self.iterator.can_peek() and self.iterator.peek() == '=':  # check for <= case
+                self._add_token(Tokens.OPERATOR, '>=')
+                self.iterator.advance()
+            elif self.iterator.can_peek() and self.iterator.peek() == '>':  # check for >> case
+                self._add_token(Tokens.OPERATOR, '>>')
+                self.iterator.advance()
+            else:
+                self._add_token(Tokens.OPERATOR, '>')
+        
+
+        # +,-,*,/ and so on. Note that this function doesn't get called unless self.iterator.word is in operators
+        else: 
+            self._add_token(Tokens.OPERATOR, self.iterator.word)
+
+    # reads till the character is operator, number or punctuation. Adds keyword or identifier accordingly if the word is in keywords list.
+    def _add_keyword_identifier(self):
+        identifier = self.iterator.word
+                
+        while (self.iterator.can_peek()): # lex whole identifier
+            # traverse until it's either 1) white space, 2) operator, 3) number, 4) punctuation
+            if not self._is_peek_white_space() and self.iterator.peek() not in OPERATORS and self.iterator.peek() not in NUMBERS and self.iterator.peek() not in PUNCTUATIONS:
+                identifier += self.iterator.advance()
+            else:
+                break
+        
+        # differentiate between keywords and identifiers
+        if identifier in KEYWORDS:
+            self._add_token(Tokens.KEYWORD, identifier)
+        else:
+            self._add_token(Tokens.IDENTIFIER, identifier)
+
+    # reads the whole number and adds to tokens. Reads number by peeking, stops if the iterator.peek is not a number anymore
+    def _add_number(self):
+        assert self.iterator.word in NUMBERS
+
+        number_str = self.iterator.word
+        while (self.iterator.can_peek()) and (self.iterator.peek() in NUMBERS): # traverse the whole number
+            number_str += self.iterator.advance()
+
+        if number_str[0] == '0' and len(number_str) > 1:
+            raise SyntaxError(f"Invalid number {number_str} starts with 0. At line {self.line}, column {self.column}")
+
+        self._add_token(Tokens.NUMBER, int(number_str))
+        
+
+
