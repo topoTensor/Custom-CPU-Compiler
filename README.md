@@ -18,20 +18,19 @@ Support for I/O, arrays, and strings is currently **not planned**, since impleme
 
 ## Implementation Checklist
 
-### Language Features
-- [ ] Integer types
-- [ ] Arithmetic operations (+, -, *, /)
-- [ ] Bitwise operations (&, |, ^, ~, <<, >>)
-- [ ] Control flow statements (`if`, `else if`, `else`, `while`)
-- [ ] Functions (definition and calls)
-- [ ] Basic error handling (syntax and semantic errors)
-
-### Compiler Components
+### Assembler
+- [x] Custom ISA and Opcodes design
 - [x] Lexer
-- [ ] Parser
-- [ ] Semantic analyzer
-- [ ] Code generator (to custom ISA)
-- [ ] Optimizer
+- [x] Parser and Encoder (from assembly file to machine bytecode)
+- [x] Decoder (from bytecode to assembly file)
+- [x] Simulator (bytecode interpreter)
+
+### Higher-level language
+- [x] Lexer
+- [x] Parser (partially, needs redesign)
+- [ ] Syntatic analysis
+- [ ] Intermediate representation
+- [ ] Compiler
 
 ### Future Extensions
 - [ ] Support for arrays
@@ -43,24 +42,24 @@ Support for I/O, arrays, and strings is currently **not planned**, since impleme
 ## Example Syntax
 
 ```ruby
-# Comments start with a hashtag.
-a = 10
-b = 12
-c = a + b  # Other operations: -, *, /, &, |, ^, ~, <<, >>
+# Comments start with a hashtag. Every statement (assignment, if, else if, else, while, function, return) end with a semicolon.
+a = 10;
+b = 12;
+c = a + b;  # Other operations: -, *, /, &, |, ^, ~, <<, >>
 
 if (a < b) {
   # do something.
-} else if (a > b) {
+}; else if (a > b) {
   # branching
-} else {
+}; else {
   # do something else
-}
+};
 
-i = 0
+i = 0;
 while (i < 10) {
-  i = i + 1
-}
+  i = i + 1;
+};
 
 function add(a, b) {
-  return a + b
-}
+  return a + b;
+};
