@@ -2,6 +2,7 @@ from tokens import Token, Tokens
 from lexer import Lexer
 from parser import Parser
 from abstract_syntax_tree import AST
+from semantic_analysis import Semantic_Analyser
 import parser2
 
 class LexerTester:
@@ -12,77 +13,12 @@ class LexerTester:
     def test(self):
 
         test_text = """
-__init__ = 7
-_var123abc = 12abc34
-important
-valid_name = true123
-42isTheAnswer
-= == = != !== <= << >> >= >=>
-weirddots = 314
-unclosed string
-if (not_hello   ==) {
-delete qweqweq
-}
-else if {
-} not else{
-}
-        """
+abc123 = 42;
+def456 = abc123 + 3;
+result = myFunc1(x1, y2, 99);
+"""
 
-        test_expect = [
-        Token( Tokens.IDENTIFIER, '__init__', 1, 1 ),
-        Token( Tokens.OPERATOR, '=', 1, 10 ),
-        Token( Tokens.NUMBER, 7, 1, 12 ),
-        Token( Tokens.IDENTIFIER, '_var', 2, 1 ),
-        Token( Tokens.NUMBER, 123, 2, 5 ),
-        Token( Tokens.IDENTIFIER, 'abc', 2, 8 ),
-        Token( Tokens.OPERATOR, '=', 2, 12 ),
-        Token( Tokens.NUMBER, 12, 2, 14 ),
-        Token( Tokens.IDENTIFIER, 'abc', 2, 16 ),
-        Token( Tokens.NUMBER, 34, 2, 19 ),
-        Token( Tokens.IDENTIFIER, 'important', 3, 1 ),
-        Token( Tokens.IDENTIFIER, 'valid_name', 4, 1 ),
-        Token( Tokens.OPERATOR, '=', 4, 12 ),
-        Token( Tokens.IDENTIFIER, 'true', 4, 14 ),
-        Token( Tokens.NUMBER, 123, 4, 18 ),
-        Token( Tokens.NUMBER, 42, 5, 1 ),
-        Token( Tokens.IDENTIFIER, 'isTheAnswer', 5, 3 ),
-        Token( Tokens.OPERATOR, '=', 6, 1 ),
-        Token( Tokens.OPERATOR, '==', 6, 3 ),
-        Token( Tokens.OPERATOR, '=', 6, 6 ),
-        Token( Tokens.OPERATOR, '!=', 6, 8 ),
-        Token( Tokens.OPERATOR, '!=', 6, 11 ),
-        Token( Tokens.OPERATOR, '=', 6, 13 ),
-        Token( Tokens.OPERATOR, '<=', 6, 15 ),
-        Token( Tokens.OPERATOR, '<', 6, 18 ),
-        Token( Tokens.OPERATOR, '<', 6, 19 ),
-        Token( Tokens.OPERATOR, '>', 6, 21 ),
-        Token( Tokens.OPERATOR, '>', 6, 22 ),
-        Token( Tokens.OPERATOR, '>=', 6, 24 ),
-        Token( Tokens.OPERATOR, '>=', 6, 27 ),
-        Token( Tokens.OPERATOR, '>', 6, 29 ),
-        Token( Tokens.IDENTIFIER, 'weirddots', 7, 1 ),
-        Token( Tokens.OPERATOR, '=', 7, 11 ),
-        Token( Tokens.NUMBER, 314, 7, 13 ),
-        Token( Tokens.IDENTIFIER, 'unclosed', 8, 1 ),
-        Token( Tokens.IDENTIFIER, 'string', 8, 10 ),
-        Token( Tokens.KEYWORD, 'if', 9, 1 ),
-        Token( Tokens.PUNCTUATION, '(', 9, 4 ),
-        Token( Tokens.IDENTIFIER, 'not_hello', 9, 5 ),
-        Token( Tokens.OPERATOR, '==', 9, 17 ),
-        Token( Tokens.PUNCTUATION, ')', 9, 19 ),
-        Token( Tokens.PUNCTUATION, '{', 9, 21 ),
-        Token( Tokens.IDENTIFIER, 'delete', 10, 5 ),
-        Token( Tokens.IDENTIFIER, 'qweqweq', 10, 12 ),
-        Token( Tokens.PUNCTUATION, '}', 11, 25 ),
-        Token( Tokens.IDENTIFIER, 'else', 12, 25 ),
-        Token( Tokens.KEYWORD, 'if', 12, 30 ),
-        Token( Tokens.PUNCTUATION, '{', 12, 33 ),
-        Token( Tokens.PUNCTUATION, '}', 13, 5 ),
-        Token( Tokens.IDENTIFIER, 'not', 13, 7 ),
-        Token( Tokens.IDENTIFIER, 'else', 13, 11 ),
-        Token( Tokens.PUNCTUATION, '{', 13, 15 ),
-        Token( Tokens.PUNCTUATION, '}', 14, 25 ),
-        Token( Tokens.EOF, 'EOF', 14, 25 )]
+        test_expect =  [Token( Tokens.IDENTIFIER, 'abc123', 1, 1 ), Token( Tokens.OPERATOR, '=', 1, 8 ), Token( Tokens.NUMBER, 42, 1, 10 ), Token( Tokens.OPERATOR, ';', 1, 12 ), Token( Tokens.IDENTIFIER, 'def456', 2, 1 ), Token( Tokens.OPERATOR, '=', 2, 8 ), Token( Tokens.IDENTIFIER, 'abc123', 2, 10 ), Token( Tokens.OPERATOR, '+', 2, 17 ), Token( Tokens.NUMBER, 3, 2, 19 ), Token( Tokens.OPERATOR, ';', 2, 20 ), Token( Tokens.IDENTIFIER, 'result', 3, 1 ), Token( Tokens.OPERATOR, '=', 3, 8 ), Token( Tokens.IDENTIFIER, 'myFunc1', 3, 10 ), Token( Tokens.PUNCTUATION, '(', 3, 17 ), Token( Tokens.IDENTIFIER, 'x1', 3, 18 ), Token( Tokens.PUNCTUATION, ',', 3, 20 ), Token( Tokens.IDENTIFIER, 'y2', 3, 22 ), Token( Tokens.PUNCTUATION, ',', 3, 24 ), Token( Tokens.NUMBER, 99, 3, 26 ), Token( Tokens.PUNCTUATION, ')', 3, 28 ), Token( Tokens.OPERATOR, ';', 3, 29 ), Token( Tokens.EOF, 'EOF', 4, 0 )]
 
 
         lexer = Lexer(test_text , testing=True)
@@ -164,6 +100,15 @@ class Parser2Tester:
         if not failed:
             print("Parser 2: All representation tests are done correctly")
 
+class SemanticTester:
+    def __init__(self, ast):
+        self.ast = ast
+        self.analyser = Semantic_Analyser()
+
+    def test(self):
+        print(self.analyser.analyse(self.ast))
+
+
 class Tester:
     def __init__(self, test_lex=False, test_pars=False):
         self.test_lex = test_lex
@@ -182,11 +127,32 @@ class Tester:
 # parser2_tester = Parser2Tester()
 # parser2_tester.test()
 
-a = " while (x < 2) {x=3;}"
+
+a = """
+x=2;
+
+if (x<2) {
+   x=x+2;
+}; else if (x > 2) {
+   x=x+2*3;
+}; else {
+   x=x;
+};
+
+function hello(a,b){
+   return a+b;
+};
+"""
+
 
 l = Lexer(a)
 test_tokens = l.tokenize()
 
+# print(test_tokens)
+
 parser = parser2.Parser2()
 ast = parser.parse(test_tokens)
 print(ast)
+
+analyser = Semantic_Analyser()
+analyser.analyse(ast)

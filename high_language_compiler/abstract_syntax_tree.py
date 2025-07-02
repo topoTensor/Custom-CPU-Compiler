@@ -17,7 +17,7 @@ class AST:
             return self.rhs.get_last_op()
         else:
             return self.op
-
+        
     # ! NOTE: REPRESENTATION OF THE AST IS USED FOR TESTING, AS MANUALLY WRITING TREES IS TEDIOUS. CHANGE THE TESTS OUTPUTS IN CASE THE REPRESENTATION FUNCTION IS CHANGED
     def __repr__(self) ->str :
 
@@ -36,3 +36,4 @@ class AST:
             if hasattr(self.rhs, 'value'):
                 return f" ({self.lhs} {self.op.value} {self.rhs.value}) "
             return f" ({self.lhs} {self.op.value} {self.rhs}) "
+    

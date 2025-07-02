@@ -185,8 +185,8 @@ class Lexer:
         identifier = self.iterator.word
                 
         while (self.iterator.can_peek()): # lex whole identifier
-            # traverse until it's either 1) white space, 2) operator, 3) number, 4) punctuation
-            if not self._is_peek_white_space() and self.iterator.peek() not in OPERATORS and self.iterator.peek() not in NUMBERS and self.iterator.peek() not in PUNCTUATIONS:
+            # traverse until it's either 1) white space, 2) operator, 4) punctuation
+            if not self._is_peek_white_space() and self.iterator.peek() not in OPERATORS and self.iterator.peek() not in PUNCTUATIONS:
                 identifier += self.iterator.advance()
             else:
                 break

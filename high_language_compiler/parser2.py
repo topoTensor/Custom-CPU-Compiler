@@ -2,6 +2,14 @@
 #   Parser 2 file. Created on 26/6/25
 #   Intent: Rewrite of the Pratt Parser. Explanation below.
 
+
+# NOTE ON SINTAX:
+# 1) All statements must be followed by a semicolon, including if, while, function and return statements.
+#       i.e. function hello(a,b) {
+#                   return a+b;
+#            };  <- semicolon after the bracket
+# 2) if and while statements can't have empty conditions
+
 # *___________________________________________Explanation___________________________________________*
 #
 # Though I've tried not to make the recursive Pratt Parser, because I can't reason well with recursion,
@@ -58,6 +66,8 @@
 #     9)    Gets the right-hand side with _make_leaf() again.
 #     10)   Then rebalances the AST depending on operator precedence.
 
+# TODO : Some minor tweeks and enhancements. Better error logging. Do more tests. Prettier tree printing. See if you can solve the problem with writing semicolon after the cloing bracket, or at least add it to the documentation.
+
 from iterator import Iterator
 from tokens import Tokens
 from abstract_syntax_tree import AST
@@ -69,6 +79,8 @@ class Parser2:
         self.verbose = verbose
 
         self.precedence = {
+            ';' : 0,
+            ',' : 1,
             '=' : 5,
             '!=': 10, '==': 10, '<=': 10, '>=': 10, '<': 10, '>' : 10,
             '+' : 15, '-':  15,
@@ -84,11 +96,12 @@ class Parser2:
 
         iterator = Iterator(tokens, name = f'parser2-iterator-depth{tokens_index}')
 
-        first = self._make_leaf(iterator, tokens_index)
+        first = self._make_leaf(iterator, tokens_index+1)
         tree = AST(first, None, None)
 
         while iterator.cursor+1 < len(tokens):
             # got to the end of the tokens. Return the tree
+
             if iterator.peek().token_type == Tokens.EOF:
                 break
             
@@ -100,7 +113,7 @@ class Parser2:
 
                 # got to the end of the expression. Continue writing the tree from node (;). 
                 # Notice the parse function on the RHS
-                tree = AST(tree, semicolon, self.parse(tokens[iterator.cursor+1:],0))
+                tree = AST(tree, semicolon, self.parse(tokens[iterator.cursor+1:],tokens_index+1))
                 break
             
 
@@ -116,7 +129,7 @@ class Parser2:
             # look at right side
             iterator.advance()
 
-            right = self._make_leaf(iterator, tokens_index)
+            right = self._make_leaf(iterator, tokens_index+1)
 
             if self.verbose: print('ops',tree.get_last_op(), op)
             if self.verbose: print('tree', tree)
@@ -137,11 +150,19 @@ class Parser2:
 
             Otherwise returns a number or identifier.
         """
-        
         # keywords
         if iterator.word.token_type == Tokens.KEYWORD:
             # if or while
-            return self._build_if_while(iterator, tokens_index)
+            if iterator.word.value == 'else':
+                return self._build_else_if(iterator, tokens_index)
+            elif iterator.word.value == 'if' or iterator.word.value == 'while':
+                return self._build_if_while(iterator, tokens_index)
+            elif iterator.word.value == 'function':
+                return self._build_function_declaration(iterator, tokens_index)
+            elif iterator.word.value == 'return':
+                return self._build_return_statement(iterator, tokens_index)
+            else:
+                raise SyntaxError(f"PARSING ERROR: Unknown keyword {iterator.word}")
 
         # parentheses (expr)
         elif iterator.word.value == '(':
@@ -172,9 +193,20 @@ class Parser2:
 
         # numbers and identifiers
         else:
+            
             leaf = iterator.word
+
+            # is it a function call?
+            if iterator.can_peek() and iterator.peek().value == '(':
+                i_start=iterator.cursor
+
+                iterator.advance() # look at (
+                self._look_for_right_symbol(iterator, '(', ')') 
+                arguments_evaluation = self._evaluate_arguments(iterator.elements[i_start+1:iterator.cursor+1], tokens_index=tokens_index+1)
+                return AST(None, leaf, arguments_evaluation)
+
             # if neither number nor identifier, raise a syntax err
-            if leaf.token_type != Tokens.NUMBER and leaf.token_type != Tokens.IDENTIFIER:
+            elif leaf.token_type != Tokens.NUMBER and leaf.token_type != Tokens.IDENTIFIER:
                 raise SyntaxError(f"leaf is not of numeric or identifier type. Token {leaf}")
             
             return leaf
@@ -189,6 +221,42 @@ class Parser2:
             raise SyntaxError(f"operator is not of numeric or identifier type. Token {operator}")
         
         return operator
+
+    def _build_else_if(self, iterator, tokens_index):
+        """
+            Returns the tree for 'else if' and 'else' statements.   
+            else if (expr) {statement;} and else {statement;}  
+
+            Expected to run from the _make_leaf function.
+        """
+        if iterator.peek().value == 'if':
+            # 'else if' branch
+            keyword_token = iterator.word
+            keyword_token.value = 'else_if'
+            iterator.advance() # skip else
+
+            return self._build_if_while(iterator, tokens_index)
+        else:
+            # just 'else'
+            keyword_token = iterator.word
+
+            if iterator.peek().value == '{':
+                iterator.advance() # skip else, look at the bracket
+
+                i_start=iterator.cursor
+
+                # find the right bracket position
+                self._look_for_right_symbol(iterator, '{', '}')
+
+                # note you don't skip }, in order to read the semicolon
+
+                # parse the statements inside the {} block
+                result_bracket = self.parse(iterator.elements[i_start+1:iterator.cursor-1], tokens_index=tokens_index+1)
+
+                # return the new node
+                return AST(None, keyword_token, result_bracket)
+            else:
+                raise SyntaxError(f'Parser error: Else statement must be followed by a left bracket. Token {iterator.word}')
 
 
     def _build_if_while(self, iterator, tokens_index):
@@ -213,6 +281,11 @@ class Parser2:
                 # parse the condition expression
                 condition = self.parse(iterator.elements[i_start+1:iterator.cursor+1], tokens_index=tokens_index+1)
 
+                # DEPRICATED, BECAUSE FUNCTIONS IN THEORY CAN RETURN TRUE STATEMENTS. FROM NOW, IF AND WHILE STATEMENTS WILL EXECUTE
+                # ANYTIME WHEN IT CONDITION EVALUATES TO 1.
+                # if condition.lhs.op.value not in ['<', '>', '==', '<=', '>=', '!=']: # check if it has condition expr inside
+                #     raise Exception(f"If and while statements must have logical condition (<,>,==,<=,>=,!=) inside the parentheses. Token {iterator.word}")
+
                 # check if there's the left bracket
                 if iterator.can_peek() and iterator.peek().value == '{':
                     iterator.advance() # skip ). Rparenth of the condition
@@ -222,7 +295,7 @@ class Parser2:
                     # find the right bracket position
                     self._look_for_right_symbol(iterator, '{', '}')
 
-                    iterator.advance() # skip }
+                    # note you don't skip }, in order to read the semicolon
 
                     # parse the statements inside the {} block
                     result_bracket = self.parse(iterator.elements[i_start+1:iterator.cursor-1], tokens_index=tokens_index+1)
@@ -237,8 +310,107 @@ class Parser2:
                 raise SyntaxError(f"PARSING SYNTAX ERROR : {keyword_token.value} keyword must be followed by a left parenth. Token {iterator.word}")
         else:
             # the keyword is neither 'if' nor 'while
-            raise SyntaxError(f"PARSING SYNTAX ERROR : Unknown keyword {iterator.word} during _build_if_while function execution.")
+            raise SyntaxError(f"PARSING SYNTAX ERROR : Expected 'if' or 'while' keyword. Unknown keyword {iterator.word} during _build_if_while function execution.")
 
+    def _build_function_declaration(self, iterator, tokens_index):
+        """
+            Returns the tree for function declaration 'function func_name(arg1, arg2...) { statements }'  
+
+            Expected to run from the _make_leaf function.
+        """
+        if iterator.word.value == 'function':
+            keyword_token = iterator.word
+
+            func_name = iterator.advance()
+
+            # check if there's the left parenth
+            if iterator.can_peek() and iterator.peek().value == '(':
+                i_start=iterator.cursor
+
+                iterator.advance() # skip function name
+                iterator.advance() # skip left parenth
+
+                # parse the arguments sequence expression till the right parenth
+                arguments = self._tokens_of_comma_sequence(iterator, tokens_index=tokens_index+1)
+
+                # check if there's the left bracket
+                if iterator.can_peek() and iterator.peek().value == '{':
+                    iterator.advance() # skip ). Rparenth of the arguments sequence
+
+                    i_start=iterator.cursor
+
+                    # find the right bracket position
+                    self._look_for_right_symbol(iterator, '{', '}')
+
+                    # note you don't skip }, in order to read the semicolon
+
+                    # parse the statements inside the {} block
+                    result_bracket = self.parse(iterator.elements[i_start+1:iterator.cursor-1], tokens_index=tokens_index+1)
+
+                    # return the new node
+                    return AST(arguments, func_name, result_bracket)
+                else:
+                    # no left parenth
+                    raise SyntaxError(f"PARSING SYNTAX ERROR : {func_name} function name must be followed by a left bracket. Token {iterator.word}")
+            else:
+                # no left bracket
+                raise SyntaxError(f"PARSING SYNTAX ERROR : {keyword_token.value} keyword must be followed by a left parenth. Token {iterator.word}")
+        else:
+            # the keyword is neither 'if' nor 'while
+            raise SyntaxError(f"PARSING SYNTAX ERROR : Expected 'function' keyword for function declaration. Unknown keyword {iterator.word} during _build_if_while function execution.")
+
+
+    def _build_return_statement(self, iterator, tokens_index=0):
+        return_token = iterator.word
+        iterator.advance() # skip return word 
+
+        i_start = iterator.cursor
+        
+        while iterator.can_peek() and iterator.peek().value != ';':
+            iterator.advance()
+
+        # now it looks at the word before comma. So that after parsing it will until the comma
+
+        parsed = self.parse(iterator.elements[i_start: iterator.cursor+1], tokens_index+1)
+
+        return AST(parsed, return_token, None)
+
+    def _evaluate_arguments(self, tokens, tokens_index=0):
+        """
+            turns expressions of the form (expr1, expr2,...) into tree (expr1 , (expr2, (expr3, ...)))
+        """
+        leaf= self.parse(tokens, tokens_index+1)
+
+        return leaf
+
+    def _tokens_of_comma_sequence(self, iterator:Iterator, tokens_index=0):
+
+        """ Collects arguments from an input of the form 'arg1, arg2, arg3).  
+            Used in function declaration in _make_leaf function.
+        """
+
+        args = []
+        if not iterator.can_peek():
+            # if no right parenth
+            raise SyntaxError(f"function arguments are not complete. No tokens to traverse. Token {iterator.word}")
+        else:
+            # if no arguments
+            if iterator.word.value == ')':
+                return args
+
+        # store arguments and ignore commas. Do until it sees a right parenth
+        while iterator.can_peek():
+            args.append(iterator.pre_advance())
+            if iterator.word.value == ')':
+                break
+            elif iterator.word.value != ',':
+                raise SyntaxError(f"Expected comma in functions arguments {args}")
+            else:
+                iterator.advance()
+
+        # note you don't skip the )
+
+        return args
 
 
     def _look_for_right_symbol(self, iterator:Iterator, left, right):

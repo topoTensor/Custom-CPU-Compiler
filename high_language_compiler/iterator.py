@@ -18,7 +18,11 @@ class Iterator:
         \t advance  - advances the cursor and returns the next element. Raises an error if advances out-of-bounds.
         \t pre_advance - returns the current element pointed by the cursor and then advances the cursor by a single step. Raises an error if advances out-of-bounds.
     """
-    def __init__(self, elements, name='Iterator'):
+    def __init__(self, elements, name='Iterator', verbose=False):
+        """
+            Traverses the elements list (strings, arrays,...) using advance, pre_advance and peek functions.
+            verbose - if True prints all tokens it sees during advance and pre_advance.
+        """
         self.elements = elements
         self.cursor = 0
         if len(self.elements) == 0:
@@ -27,12 +31,16 @@ class Iterator:
             self.word = self.elements[0]
 
         self.name = name # will be displayed during error messages
+        self.verbose = verbose # prints
 
     # advances the cursor by a single step. Raises an error if out-of-bounds.
     def advance(self):
         if self.can_peek():
             self.cursor += 1
             self.word = self.elements[self.cursor]
+
+            if self.verbose: print(self.name, self.word) # verbose
+
             return self.word
         else:
             raise IndexError(f"{self.name} tried to advance out-of-bounds element at position {self.cursor}")
@@ -40,6 +48,9 @@ class Iterator:
     # returns the CURRENT element pointed by the cursor and then advances the cursor by a single step
     def pre_advance(self):
         old_word = self.word
+
+        if self.verbose: print(self.name, self.word) # verbose
+
         self.advance()
         return old_word
 

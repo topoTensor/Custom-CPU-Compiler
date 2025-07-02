@@ -8,9 +8,9 @@
 
 from enum import Enum
 
-OPERATORS = ['+', '-', '*', '/', '=', '<', '>', '!', '&', '|', '^', ';']
+OPERATORS = ['+', '-', '*', '/', '=', '<', '>', '!', '&', '|', '^', ';', ',']
 NUMBERS = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
-KEYWORDS = ['if', 'while', 'function', 'return']
+KEYWORDS = ['if', 'else', 'while', 'function', 'return']
 PUNCTUATIONS = [',', '(', ')', '{', '}']
 
 class Tokens(Enum):
