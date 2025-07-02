@@ -3,7 +3,7 @@
 A lightweight experimental compiler written in Python for my custom-built Verilog CPU.  
 This project is a **work in progress** and subject to major redesigns as the CPU and instruction set architecture (ISA) evolve.
 
-The repository also contains a custom ISA assembler and disassembler.
+The repository also contains a custom ISA assembler, disassembler and simulator.
 
 ## Project Goals
 
@@ -18,18 +18,19 @@ Support for I/O, arrays, and strings is currently **not planned**, since impleme
 
 ## Implementation Checklist
 
-### Language Features
-- [ ] Integer types
-- [ ] Arithmetic operations (+, -, *, /)
-- [ ] Bitwise operations (&, |, ^, ~, <<, >>)
-- [ ] Control flow statements (`if`, `else if`, `else`, `while`)
-- [ ] Functions (definition and calls)
-- [ ] Basic error handling (syntax and semantic errors)
+### Assembler
+- [x] Lexer
+- [x] Encoder and Decoder
+- [x] Parser
+- [x] Custom ISA and bytecode
+- [x] Tests
+- [x] Simulator
+- [x] Detailed explanation
 
 ### Compiler Components
 - [x] Lexer
-- [ ] Parser
-- [ ] Semantic analyzer
+- [x] Parser
+- [ ] Semantic analyzer (work in progress)
 - [ ] Code generator (to custom ISA)
 - [ ] Optimizer
 
@@ -44,23 +45,23 @@ Support for I/O, arrays, and strings is currently **not planned**, since impleme
 
 ```ruby
 # Comments start with a hashtag.
-a = 10
-b = 12
-c = a + b  # Other operations: -, *, /, &, |, ^, ~, <<, >>
+a = 10;
+b = 12;
+c = a + b;  # Other operations: -, *, /, &, |, ^, ~, <<, >>
 
 if (a < b) {
   # do something.
-} else if (a > b) {
+}; else if (a > b) {
   # branching
-} else {
+}; else {
   # do something else
-}
+};
 
-i = 0
+i = 0;
 while (i < 10) {
-  i = i + 1
-}
+  i = i + 1;
+};
 
 function add(a, b) {
-  return a + b
-}
+  return a + b;
+};
